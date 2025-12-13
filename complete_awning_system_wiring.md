@@ -1,20 +1,22 @@
-# SƠ ĐỒ ĐẤU DÂY HỆ THỐNG BẠT XẾP THÔNG MINH HOÀN CHỈNH
+# SƠ ĐỒ ĐẤU DÂY HỆ THỐNG BẠT XẾP THÔNG MINH (DEMO MODEL)
 
 ## 1. TỔNG QUAN HỆ THỐNG
 
 ```
-220V AC ──┬── [CB 10A] ── [Biến áp 220V→12V/5A] ── [Nguồn 12V]
-          │                                           │
-          │                                           ├── Motor DC 12V
-          │                                           ├── Arduino (qua Buck 12V→5V)
-          └── [Contactor] ── Motor AC (nếu dùng)      └── Các module 5V
+⚡ DEMO MODEL - CHỈ DÙNG 5V (MÔ HÌNH NHỎ)
 
+Adapter 5V/3-5A ─┬── Arduino Nano (5V Logic)
+                 │
+                 └── L298N ─── Motor DC 5V (giảm tốc 1:48)
+                      │
 Arduino Nano ── Control Center ── 4 Button Interface
      │                               │
      ├── Motor Driver L298N          ├── EXTEND Button + LED
      ├── Rain Sensor                 ├── RETRACT Button + LED  
      ├── 2x Limit Switches           ├── STOP Button + LED
      └── Status LEDs                 └── SMART Button + LED
+     
+💡 NGUỒN: Chỉ cần 1 adapter 5V/3-5A cho toàn bộ hệ thống!
 ```
 
 ## 2. ARDUINO NANO - CHÂN KẾT NỐI CHI TIẾT
@@ -61,13 +63,14 @@ CHÂN    THIẾT BỊ                    MÔ TẢ                          KẾT
 A0      RAIN_SENSOR_ANALOG          Cảm biến mưa (analog)         Sensor AO → A0
 ```
 
-## 3. MẠCH ĐIỀU KHIỂN MOTOR L298N
+## 3. MẠCH ĐIỀU KHIỂN MOTOR L298N (ĐIỀU KHIỂN 2 CHIỀU)
 
+### Sơ đồ kết nối:
 ```
-L298N MODULE        ARDUINO NANO        MOTOR DC            NGUỒN
+L298N MODULE        ARDUINO NANO        MOTOR 5V            NGUỒN
 =======================================================================
-VCC                 -                   -                   12V+
-GND                 GND                 -                   12V-/GND
+VCC                 -                   -                   5V+ (Adapter)
+GND                 GND                 -                   GND
 IN1                 D3                  -                   -
 IN2                 D4                  -                   -
 EN A                D2 (PWM)            -                   -
@@ -75,15 +78,52 @@ OUT1                -                   Motor Wire 1        -
 OUT2                -                   Motor Wire 2        -
 ```
 
-### Nguyên lý hoạt động motor:
+### Nguyên lý hoạt động 2 chiều:
+**L298N H-Bridge tự động đảo cực motor** để điều khiển 2 chiều:
+
 ```
-TRẠNG THÁI          IN1     IN2     EN      KẾT QUẢ
-=====================================================
-Dừng               LOW     LOW     LOW     Motor dừng
-Kéo bạt (xuôi)     HIGH    LOW     PWM     Motor quay xuôi
-Thu bạt (ngược)    LOW     HIGH    PWM     Motor quay ngược
-Phanh              HIGH    HIGH    HIGH    Motor phanh
+TRẠNG THÁI          IN1     IN2     EN      KẾT QUẢ              CHIỀU QUAY
+=============================================================================
+Dừng               LOW     LOW     LOW     Motor dừng           -
+Kéo bạt (xuôi)     HIGH    LOW     PWM     OUT1=+5V, OUT2=GND   Xuôi chiều kim đồng hồ
+Thu bạt (ngược)    LOW     HIGH    PWM     OUT1=GND, OUT2=+5V   Ngược chiều kim đồng hồ
+Phanh              HIGH    HIGH    HIGH    Motor phanh          -
 ```
+
+### Cách L298N tạo chuyển động 2 chiều:
+```
+▶ Kéo bạt (IN1=HIGH, IN2=LOW):
+   Arduino D3 ─→ IN1 ┐
+                      ├─→ H-Bridge ─→ OUT1(+5V) ─→ Motor(+) ─→ OUT2(GND)
+   Arduino D4 ─→ IN2 ┘              Dòng điện: OUT1 → Motor → OUT2
+                                     Motor quay xuôi
+
+▶ Thu bạt (IN1=LOW, IN2=HIGH):
+   Arduino D3 ─→ IN1 ┐
+                      ├─→ H-Bridge ─→ OUT1(GND) ─→ Motor(-) ─→ OUT2(+5V)
+   Arduino D4 ─→ IN2 ┘              Dòng điện: OUT2 → Motor → OUT1
+                                     Motor quay ngược (đảo cực tự động)
+```
+
+### Hướng dẫn lắp đặt motor 5V:
+1. **Kết nối motor với L298N:**
+   - Nối 2 dây motor vào OUT1 và OUT2 (không cần phân biệt cực)
+   - Nếu chiều quay ngược với mong muốn → đổi dây motor
+
+2. **Cấp nguồn 5V:**
+   - Adapter 5V/3-5A nối vào VCC và GND của L298N
+   - Nối GND chung với Arduino
+   - **Lưu ý**: Dùng chung 1 nguồn 5V cho cả Arduino và L298N
+
+3. **Nối Arduino:**
+   - D2 (PWM) → EN A (điều khiển tốc độ)
+   - D3 → IN1 (điều khiển chiều 1)
+   - D4 → IN2 (điều khiển chiều 2)
+
+4. **Lắp motor vào khung (mô hình nhỏ):**
+   - Motor giảm tốc TT 1:48 hoặc 1:90 (đã có hộp số)
+   - Nối trực tiếp trục motor với trục bạt nhỏ
+   - Hoặc dùng nhông/xích mini với tỷ lệ 1:2
 
 ## 4. MẠCH BUTTON VÀ LED
 
@@ -144,29 +184,32 @@ LIMIT SWITCH 2 (Retracted Position):
 - Switch 2: Vị trí bạt thu hết (gần motor)
 - Loại switch: Micro switch có lever, IP65
 
-## 7. NGUỒN CUNG CẤP
+## 7. NGUỒN CUNG CẤP (MÔ HÌNH DEMO - MOTOR 5V)
 
-### Mạch nguồn chính:
+### Mạch nguồn đơn giản:
 ```
-220V AC ──[CB 10A]── [Biến áp 12V/5A] ── [C 2200µF] ── 12V DC
-                                           │
-                                           ├── L298N + Motor
-                                           └── [Buck 12V→5V/1A] ── Arduino + Sensors
+                    ┌── Arduino Nano (USB hoặc VIN)
+                    │
+Adapter 5V/3-5A ────┼── L298N VCC
+                    │
+                    └── Sensors + LEDs + Buttons
+                    
+GND chung: Adapter GND ─── Arduino GND ─── L298N GND
 ```
 
 ### Phân bổ công suất:
 ```
 THIẾT BỊ                ĐIỆN ÁP    DÒNG ĐIỆN    CÔNG SUẤT
 ===============================================================
-Motor DC                12V        2-4A         24-48W
+Motor DC 5V giảm tốc    5V         1-2A         5-10W
 Arduino Nano            5V         50mA         0.25W
-L298N Module            12V        100mA        1.2W
+L298N Module (logic)    5V         30mA         0.15W
 Rain Sensor             5V         20mA         0.1W
 LEDs (6 cái)            5V         120mA        0.6W
 Buttons + Pull-ups      5V         10mA         0.05W
 
-TỔNG TIÊU THỤ                      3.3-5.3A     40-50W
-NGUỒN KHUYẾN NGHỊ                  5-6A         60-72W
+TỔNG TIÊU THỤ                      1.2-2.2A     6-11W
+NGUỒN KHUYẾN NGHỊ       5V         3-5A         15-25W (Adapter 5V/3-5A)
 ```
 
 ## 8. HỘP ĐIỀU KHIỂN VÀ LAYOUT
@@ -206,19 +249,21 @@ Hộp giao diện: 200x150x75mm (IP54)
 - [ ] Test motor (không tải) từng hướng
 - [ ] Test motor với tải thật
 
-## 10. LƯU Ý AN TOÀN
+## 10. LƯU Ý AN TOÀN (DEMO MODEL)
 
 ### Điện:
-⚠️ **CB bảo vệ 10A** cho toàn bộ hệ thống
-⚠️ **Fuse 5A** riêng cho motor
-⚠️ **Contactor** để ngắt khẩn cấp
-⚠️ **GND chung** cho tất cả thiết bị
+⚠️ **USB 5V** an toàn tuyệt đối
+⚠️ **12V adapter** - không nguy hiểm nhưng cần chú ý:
+   - Kiểm tra phân cực (+/-) trước khi kết nối
+   - Không chạm ngắn mạch +12V và GND
+⚠️ **GND chung** cho tất cả thiết bị (USB GND + 12V GND)
+⚠️ **Fuse 3A** để bảo vệ motor (optional nhưng nên có)
 
 ### Cơ khí:
 ⚠️ **Limit switches** phải đáng tin cậy 100%
-⚠️ **Emergency stop** dễ tiếp cận
 ⚠️ **Motor mounting** chắc chắn, không rung
 ⚠️ **Cable management** tránh bị kẹt bởi bạt
+⚠️ **Demo model**: Dùng motor nhỏ, tải trọng nhẹ
 
 ### Software:
 ⚠️ **Timeout protection** cho motor

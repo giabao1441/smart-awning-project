@@ -26,8 +26,8 @@ Hệ thống điều khiển bạt xếp tự động thông minh với khả n�
 
 ### Phần cứng chính:
 - **Vi điều khiển**: Arduino Nano
-- **Motor**: DC 12V 30-50W với L298N driver
-- **Nguồn**: 12V/5A + Buck converter 5V/2A  
+- **Motor**: DC 5V 3-10W với L298N driver (cho mô hình demo nhỏ)
+- **Nguồn**: Adapter 5V/3-5A (nguồn duy nhất cho toàn bộ hệ thống)
 - **Giao diện**: 4 nút bấm có LED + 2 LED trạng thái
 - **Cảm biến**: Rain sensor + 2x Limit switches
 
@@ -39,28 +39,29 @@ Hệ thống điều khiển bạt xếp tự động thông minh với khả n�
 ✅ Bảo vệ quá tải và timeout  
 ✅ LED báo trạng thái trực quan  
 
-## 💰 Chi phí dự kiến
+## 💰 Chi phí dự kiến (Mô hình Demo Nhỏ - Motor 5V)
 
-**Tổng chi phí**: 3.8 - 4.5 triệu VNĐ
+**Tổng chi phí**: 1.2 - 1.8 triệu VNĐ
 
 ### Phân bổ chi phí:
-- Motor + Driver: ~1.0 triệu
-- Arduino + Sensors: ~0.8 triệu  
-- Nguồn + Protection: ~0.7 triệu
-- Buttons + LEDs + Housing: ~0.6 triệu
-- Cable + Mounting: ~0.5 triệu
-- Phụ kiện: ~0.4 triệu
+- Motor 5V + L298N: ~200k
+- Arduino Nano: ~150k
+- Nguồn 5V/5A: ~150k
+- Rain sensor + Limit switches: ~150k
+- Buttons + LEDs: ~200k
+- Breadboard + Dây nối: ~150k
+- Khung + Phụ kiện: ~200k
 
-## ⏱️ Thời gian thực hiện
+## ⏱️ Thời gian thực hiện (Mô hình Demo)
 
-**Tổng thời gian**: 5-7 ngày
+**Tổng thời gian**: 2-3 ngày
 
 ### Lịch trình:
-1. **Mua sắm + Chuẩn bị**: 1-2 ngày
-2. **Chế tạo hộp điều khiển**: 1 ngày  
-3. **Lắp đặt motor + cơ khí**: 1 ngày
-4. **Lập trình + test**: 1 ngày
-5. **Tinh chỉnh + test thực tế**: 2-3 ngày
+1. **Mua sắm + Chuẩn bị**: 0.5 ngày
+2. **Chế tạo hộp điều khiển**: 0.5 ngày  
+3. **Lập đặt motor + cơ khí**: 0.5 ngày
+4. **Lập trình + test**: 0.5 ngày
+5. **Tinh chỉnh + test thực tế**: 1 ngày
 
 ## 🚀 Hướng dẫn bắt đầu
 
@@ -80,23 +81,23 @@ Hệ thống điều khiển bạt xếp tự động thông minh với khả n�
 - Theo hướng dẫn từng bước trong installation guide
 - Test kỹ trước khi vận hành chính thức
 
-## ⚠️ Lưu ý an toàn
+## ⚠️ Lưu ý an toàn (Mô hình Demo 5V)
 
 ### Điện:
-- **CB bảo vệ 10A** cho toàn hệ thống
-- **Fuse riêng** cho motor  
-- **Emergency stop** dễ tiếp cận
-- **GND chung** cho tất cả thiết bị
+- **Adapter 5V/3-5A** - an toàn, không nguy hiểm
+- **GND chung** - Adapter, Arduino, L298N phải chung GND
+- **Không ngắn mạch** +5V và GND khi motor chạy
+- **Test riêng** từng module trước khi lắp ghép
 
 ### Cơ khí:
-- **Limit switches** phải 100% đáng tin cậy
-- **Motor mounting** chắc chắn
-- **Cable management** tránh bị kẹt
-- **Weather protection** cho outdoor components
+- **Limit switches** phải chắc chắn, test nhiều lần
+- **Motor mounting** chắc, tránh rung lắc
+- **Bạt nhẹ** - chỉ dùng vải mỏng ~50-200g cho motor 5V
+- **Trục truyền động** - kiểm tra không bị kẹt
 
 ### Software:
-- **Timeout protection** cho motor
-- **Debounce** cho inputs
+- **Timeout protection** - motor tự dừng sau 60s
+- **Debounce** - chống nhiễu nút bấm
 - **Serial monitoring** để debug
 - **Backup code** trước khi sửa
 

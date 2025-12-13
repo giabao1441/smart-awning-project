@@ -2,50 +2,45 @@
 
 ## GIAI ĐOẠN 1: CHUẨN BỊ VÀ THIẾT KẾ (1-2 ngày)
 
-### Bước 1.1: Khảo sát vị trí lắp đặt
+### Bước 1.1: Khảo sát mô hình demo
 ```bash
-📋 CHECKLIST KHẢO SÁT:
-□ Đo kích thước bạt và hành trình cần thiết
-□ Xác định vị trí motor và hướng quay
-□ Chọn vị trí hộp điều khiển (gần điện, tránh ẩm)
-□ Xác định đường kéo cable 
-□ Chọn vị trí cảm biến mưa (không bị che chắn)
-□ Kiểm tra nguồn điện 220V có sẵn
-□ Đo khoảng cách từ motor đến điều khiển
+📋 CHECKLIST CHO MÔ HÌNH DEMO NHỎ:
+□ Kích thước mô hình: ~30x40cm (hoặc tùy chỉnh)
+□ Loại bạt: Vải mỏng, nhựa mềm (nhẹ ~50-200g)
+□ Vị trí motor: Một đầu khung
+□ Breadboard: Đặt cạnh motor hoặc riêng biệt
+□ Nguồn điện: Adapter 5V/3-5A (cắm điện 220V thường)
+□ Cảm biến mưa: Đặt ngoài trời hoặc test bằng nước
+□ Limit switches: 2 đầu hành trình bạt
 ```
 
 ### Bước 1.2: Mua sắm linh kiện
 ```bash
 🛒 SHOPPING LIST HOÀN CHỈNH:
 
-MOTOR & CONTROL:
-□ Motor DC 12V 30-50W (có encoder tốt hơn)
-□ L298N Motor Driver Module  
-□ Arduino Nano + USB cable
-□ Nguồn 12V/5A (outdoor rated)
-□ Buck converter 12V→5V/2A
+MOTOR & CONTROL (cho mô hình demo nhỏ):
+□ Motor DC 5V giảm tốc TT 1:48 hoặc 1:90 (~80-150k)
+□ L298N Motor Driver Module (~80k)
+□ Arduino Nano + USB cable (~150k)
+□ Adapter 5V/3-5A (~150k) - nguồn duy nhất cho toàn bộ hệ thống
 
 BUTTONS & INTERFACE:
-□ Nút bấm có LED 22mm x4 (IP65)
-□ LED 5mm đỏ/xanh x2
-□ Điện trở 220Ω x6, 10kΩ x6
+□ Nút bấm mini x4 (12mm hoặc breadboard buttons) (~50k)
+□ LED 5mm đỏ/xanh x6 (~30k)
+□ Điện trở 220Ω x6, 10kΩ x6 (~20k)
 
 SENSORS:
-□ Rain sensor module + pad
-□ Limit switch IP65 x2
-□ Cable sensor chống nước 5m
+□ Rain sensor module FC-37 (~50k)
+□ Limit switch mini (NO) x2 (~40k)
+□ Cable jumper wire (~50k)
 
-PROTECTION:
-□ CB 10A x1, Fuse 5A x2
-□ Contactor 25A/12VDC x1
-□ Relay module 8 kênh
-
-HOUSING & CABLE:
-□ Hộp điều khiển 300x200x150mm IP65
-□ Hộp button 200x150x75mm IP54  
-□ Cable 4x1.5mm² x20m (motor)
-□ Cable tín hiệu 10 core x10m
-□ Ống luồn dây + phụ kiện
+ASSEMBLY (mô hình demo):
+□ Breadboard 830 holes (~50k)
+□ Khung nhôm/nhựa 30x40cm (~100k)
+□ Dây jumper breadboard male-male/female-female (~30k)
+□ Ốc vít M3 + đai ốc (~20k)
+□ Vải/nhựa mỏng làm bạt (~30k)
+□ Trục nhựa/gỗ 8mm cho bạt (~20k)
 
 TOOLS:
 □ Khoan + mũi khoan inox
@@ -79,28 +74,26 @@ TOOLS:
    - Heat sink cho L298N nếu cần
 ```
 
-### Bước 2.2: Đấu dây trong hộp điều khiển
+### Bước 2.2: Đấu dây trong hộp điều khiển (Demo)
 ```bash
 🔌 THỨ TỰ ĐẤU DÂY:
 
-1. NGUỒN CHÍNH:
-   220V ─── [CB 10A] ─── [Biến áp 12V/5A] ─── [+12V Bus]
-                                               │
-                                               ├── L298N VCC
-                                               ├── Motor via Contactor
-                                               └── Buck 5V input
+1. NGUỒN ARDUINO:
+   USB 5V ─── Arduino Nano USB port
+   
+2. NGUỒN MOTOR:
+   12V Adapter (+) ─── L298N VCC
+   12V Adapter (-) ─── L298N GND ─── Arduino GND (GND chung!)
 
-2. NGUỒN 5V:
-   Buck 5V ─── [+5V Bus] ─── Arduino VIN
-                         └── Sensors VCC
-
-3. GND CHUNG:
-   Tất cả GND nối chung tại 1 terminal block
-
-4. SIGNAL WIRES:
+3. SIGNAL WIRES:
    Arduino ↔ L298N (D2,D3,D4,D5)
    Arduino ↔ Sensors (D6-D12, A0)
    Arduino ↔ LEDs (D13, A1-A5)
+   
+4. LƯU Ý:
+   - GND của USB và 12V PHẢI nối chung
+   - Kiểm tra phân cực 12V trước khi bật
+   - Dùng breadboard để dễ kết nối
 ```
 
 ## GIAI ĐOẠN 3: CHẾ TẠO HỘP GIAO DIỆN (0.5 ngày)
@@ -136,24 +129,155 @@ MỖI BUTTON KẾT NỐI:
 
 ## GIAI ĐOẠN 4: LẮP ĐẶT MOTOR VÀ CƠ KHÍ (1 ngày)
 
-### Bước 4.1: Lắp đặt motor
+### Bước 4.1: Lắp đặt motor 2 chiều
 ```bash
-1. MOTOR MOUNTING:
-   - Chọn motor DC 12V có moment đủ lớn
-   - Gắn chắc chắn vào khung bạt
-   - Đảm bảo trục motor thẳng hàng
-   - Có thể cần hộp số giảm tốc
+1. CHỌN MOTOR PHÙ HỢP:
+   ✅ Motor DC 12V có 2 dây (không phân cực +/-)
+   ✅ Công suất: 10-30W (demo) hoặc 30-50W (thực tế)
+   ✅ Có hộp số giảm tốc (tăng mô-men xoắn)
+   ✅ Loại motor khuyến nghị:
+      - DC gear motor 12V 100-200 RPM
+      - Worm gear motor (tự hãm)
+      - Motor với encoder (optional)
 
-2. CƠ CẤU TRUYỀN ĐỘNG:
-   Option A: Trực tiếp (motor → drum)
-   Option B: Dây đai (motor → pulley → drum)  
-   Option C: Xích (motor → sprocket → drum)
+2. KẾT NỐI MOTOR VỚI L298N (ĐIỀU KHIỂN 2 CHIỀU):
+   
+   Motor DC 12V (2 dây bất kỳ)
+   ┌────────┐
+   │ Wire 1 │───────────┐
+   └────────┘           │
+   ┌────────┐           ↓
+   │ Wire 2 │───────┐   ┌─────────────────┐
+   └────────┘       └───│ L298N OUT1      │
+                        │       OUT2      │───→ Đảo chiều tự động
+                        │                 │
+   Arduino Nano         │ IN1 ← D3        │
+   ┌──────────┐         │ IN2 ← D4        │
+   │ D2 (PWM) │─────────│ EN  ← D2        │
+   │ D3       │─────────│                 │
+   │ D4       │─────────│ VCC ← 12V (+)   │
+   │ GND      │─────────│ GND ← 12V (-)   │
+   └──────────┘         └─────────────────┘
+   
+   ⚡ NGUYÊN LÝ H-BRIDGE (L298N):
+   
+   Chiều 1 (KÉO BẠT):
+   IN1=HIGH, IN2=LOW  → OUT1=+12V, OUT2=GND
+                      → Motor quay xuôi
+   
+   Chiều 2 (THU BẠT):
+   IN1=LOW, IN2=HIGH  → OUT1=GND, OUT2=+12V
+                      → Motor quay ngược
+   
+   DỪNG:
+   IN1=LOW, IN2=LOW   → Motor dừng
+   
+3. LẮP ĐẶT CƠ KHÍ:
 
-3. LIMIT SWITCHES:
-   - Switch 1: Gắn ở vị trí bạt kéo hết
-   - Switch 2: Gắn ở vị trí bạt thu hết  
-   - Dùng cần gạt hoặc cam để kích hoạt
-   - Đấu dây về hộp điều khiển
+   A. MOTOR MOUNTING (Quan trọng!):
+      ┌──────────────────────────────────┐
+      │  [Motor] → [Khớp nối] → [Trục]  │
+      │     ↓                      ↓      │
+      │  [Gá đỡ]              [Ổ bi]    │
+      └──────────────────────────────────┘
+      
+      - Gá motor CỐ ĐỊNH, không rung
+      - Dùng đệm cao su giảm chấn
+      - Khớp nối linh hoạt (coupling)
+      - Đảm bảo đồng tâm với trục bạt
+
+   B. CƠ CẤU TRUYỀN ĐỘNG:
+   
+   Option 1: TRỰC TIẾP (đơn giản nhất)
+   ┌──────┐     ┌──────────┐
+   │ Motor│─────│ Trục bạt │
+   └──────┘     └──────────┘
+   ✅ Ưu: Đơn giản, ít hỏng hóc
+   ❌ Nhược: Cần motor công suất lớn
+   
+   Option 2: DÂY ĐAI (khuyến nghị cho demo)
+   ┌──────┐     ╭─────╮     ┌──────────┐
+   │ Motor│─────│Pulley│─────│ Trục bạt │
+   └──────┘     ╰─────╯     └──────────┘
+               Dây đai
+   ✅ Ưu: Giảm tốc, tăng mô-men, êm
+   ✅ Tỷ số truyền: 1:2 hoặc 1:3
+   
+   Option 3: XÍCH (bền nhất)
+   ┌──────┐     ╔═════╗     ┌──────────┐
+   │ Motor│─────║Xích ║─────│ Trục bạt │
+   └──────┘     ╚═════╝     └──────────┘
+   ✅ Ưu: Bền, chịu tải cao
+   ❌ Nhược: Ồn, cần bôi trơn
+
+4. LẮP ĐẶT CHI TIẾT:
+
+   Bước 1: GẮN MOTOR
+   - Vị trí: Sát trục cuộn bạt, trong nhà
+   - Gá đỡ: Khung sắt hoặc gỗ chắc chắn
+   - Lưu ý: Không để motor bị ướt
+
+   Bước 2: NỐI TRỤC
+   - Dùng khớp nối mềm (flexible coupling)
+   - Hoặc dùng dây đai/xích với 2 bánh răng
+   - Kiểm tra: Trục quay mượt, không kêu
+
+   Bước 3: ĐẤU DÂY MOTOR
+   - 2 dây motor nối với OUT1, OUT2 của L298N
+   - KHÔNG CẦN PHÂN BIỆT +/-
+   - Nếu motor quay ngược → đổi 2 dây
+
+   Bước 4: TEST HƯỚNG QUAY
+   ```cpp
+   // Upload code test đơn giản
+   digitalWrite(MOTOR_IN1, HIGH);
+   digitalWrite(MOTOR_IN2, LOW);
+   analogWrite(MOTOR_ENABLE, 150); // Tốc độ chậm
+   delay(2000); // Chạy 2 giây
+   
+   // Quan sát:
+   // - Nếu bạt KÉO ra → Đúng hướng
+   // - Nếu bạt THU vào → Đổi dây OUT1 ↔ OUT2
+   ```
+
+5. ĐIỀU CHỈNH TỐC ĐỘ:
+   ```cpp
+   // Trong code Arduino
+   const int MOTOR_SPEED = 200; // 0-255
+   
+   // Demo/Test: 100-150 (chậm, an toàn)
+   // Thực tế: 200-255 (nhanh)
+   ```
+
+6. AN TOÀN:
+   ⚠️ Test KHÔNG TẢI trước (không gắn bạt)
+   ⚠️ Có nút STOP dễ tiếp cận
+   ⚠️ Kiểm tra motor không quá nóng (>60°C)
+   ⚠️ Limit switches PHẢI hoạt động 100%
+
+7. LẮP ĐẶT LIMIT SWITCHES:
+   
+   Switch 1 (VỊ TRÍ KÉO HẾT):
+   ┌─────────────────────────────┐
+   │        Bạt kéo →            │
+   │  ████████████████  [SW1]    │ ← Gắn ở đầu ray
+   │                    ↑         │
+   │              Cần gạt kích   │
+   └─────────────────────────────┘
+   
+   Switch 2 (VỊ TRÍ THU HẾT):
+   ┌─────────────────────────────┐
+   │    [Motor] [SW2]            │ ← Gắn gần motor
+   │        ↑                    │
+   │   Cam kích hoạt             │
+   │  ███  ← Bạt thu             │
+   └─────────────────────────────┘
+   
+   Cách đấu:
+   - Loại: Normally Open (NO)
+   - Kết nối: Switch → GND khi nhấn
+   - Pull-up: 10kΩ lên 5V (trong code)
+   - Test: Nhấn tay → Serial Monitor hiển thị
 ```
 
 ### Bước 4.2: Test cơ khí
