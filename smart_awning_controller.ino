@@ -6,6 +6,8 @@
  * - Ưu tiên lệnh từ người dùng
  */
 
+#include <Arduino.h>
+
 // =================== CHÂN KẾT NỐI MOTOR ===================
 #define MOTOR_ENABLE 2        // Enable motor (PWM)
 #define MOTOR_IN1 3           // Motor direction 1
@@ -50,17 +52,23 @@ bool btnSmartPressed = false;
 unsigned long lastButtonCheck = 0;
 unsigned long lastRainCheck = 0;
 unsigned long lastStatusUpdate = 0;
+unsigned long lastLoopTime = 0;                  // Chu kỳ loop chính
 unsigned long motorStartTime = 0;
+unsigned long rainStoppedTime = 0;              // Thời điểm hết mưa
 unsigned long buttonPressTime[4] = {0, 0, 0, 0}; // Debounce cho 4 nút
+bool rainJustStopped = false;                    // Flag để track trạng thái chuyển
 
-const unsigned long DEBOUNCE_TIME = 200;
-const unsigned long RAIN_CHECK_INTERVAL = 2000;
-const unsigned long STATUS_UPDATE_INTERVAL = 500;
-const unsigned long MOTOR_MAX_RUNTIME = 60000; // 60 giây tối đa
+const unsigned long DEBOUNCE_TIME = 100;          // Debounce cho nút bấm
+const unsigned long LOOP_INTERVAL = 300;          // Chu kỳ loop chính (300ms)
+const unsigned long RAIN_CHECK_INTERVAL = 2000;  // Check mưa mỗi 2s
+const unsigned long STATUS_UPDATE_INTERVAL = 500; // Cập nhật LED mỗi 0.5s
+const unsigned long MOTOR_MAX_RUNTIME = 60000;    // 60 giây tối đa
 
 // =================== NGƯỠNG CẢM BIẾN ===================
-const int RAIN_THRESHOLD = 400; // Ngưỡng phát hiện mưa
-const int MOTOR_SPEED = 255;    // Tốc độ motor (0-255)
+const int RAIN_THRESHOLD = 400;        // Ngưỡng phát hiện mưa
+const int RAIN_THRESHOLD_CLEAR = 500;  // Ngưỡng hết mưa (hysteresis)
+const int MOTOR_SPEED = 255;           // Tốc độ motor (0-255)
+const unsigned long RAIN_STOP_DELAY = 120000; // Delay 2 phút sau khi hết mưa
 
 // =================== ENUM TRẠNG THÁI ===================
 enum MotorState {
@@ -107,7 +115,10 @@ void setup() {
   // =================== KHỞI TẠO TRẠNG THÁI ===================
   stopMotor();
   updateLEDStatus();
-  checkAwningPosition();
+  
+  // Đọc vị trí ban đầu từ limit switches
+  awningExtended = !digitalRead(LIMIT_EXTENDED);
+  awningRetracted = !digitalRead(LIMIT_RETRACTED);
   
   Serial.println("🏠 ===================================");
   Serial.println("🏠 SMART AWNING SYSTEM STARTED");
@@ -125,26 +136,39 @@ void setup() {
 }
 
 void loop() {
-  // Kiểm tra đầu vào
-  checkButtonInputs();
-  checkRainSensor();
-  checkLimitSwitches();
-  checkMotorTimeout();
+  unsigned long currentTime = millis();
+  
+  // Chỉ xử lý sau mỗi LOOP_INTERVAL (300ms)
+  if (currentTime - lastLoopTime < LOOP_INTERVAL) {
+    // === FAST CHECKS (Critical timing) ===
+    // Những function này cần check thường xuyên vì liên quan đến:
+    // - User experience (buttons)
+    // - Safety (limit switches, timeout)
+    checkButtonInputs();      // Debounce 100ms - responsive cho user
+    checkLimitSwitches();     // Safety - dừng motor ngay khi chạm limit
+    checkMotorTimeout();      // Safety - timeout protection
+    delay(10);                // Nghỉ 10ms để không spam CPU
+    return;
+  }
+  
+  lastLoopTime = currentTime;
+  
+  // === CHU KỲ CHÍNH (300ms) ===
+  // Kiểm tra cảm biến
+  checkRainSensor();          // Check mỗi 2s (có interval riêng)
   
   // Xử lý logic điều khiển
-  processButtonCommands();
-  processAutoMode();
+  processButtonCommands();    // Xử lý lệnh từ user
+  processAutoMode();          // Xử lý chế độ tự động
   
   // Cập nhật đầu ra
-  updateLEDStatus();
-  updateMotorControl();
-  
-  delay(50); // Giảm tần số loop để ổn định
+  updateLEDStatus();          // Cập nhật LED (có interval riêng)
+  updateMotorControl();       // Cập nhật motor (hiện tại trống)
 }
 
 // =================== KIỂM TRA ĐẦU VÀO ===================
 void checkButtonInputs() {
-  if (millis() - lastButtonCheck < 50) return; // Debounce
+  if (millis() - lastButtonCheck < DEBOUNCE_TIME) return; // Debounce 100ms
   
   // Đọc trạng thái nút bấm (LOW = pressed)
   bool currentExtend = !digitalRead(BTN_EXTEND);
@@ -181,12 +205,29 @@ void checkRainSensor() {
   int rainAnalog = analogRead(RAIN_SENSOR_ANALOG);
   bool rainDigital = !digitalRead(RAIN_SENSOR_DIGITAL);
   
-  bool rainDetected = (rainAnalog > RAIN_THRESHOLD) || rainDigital;
+  // Hysteresis: khác ngưỡng khi bắt đầu mưa vs hết mưa
+  bool rainDetected;
+  if (isRaining) {
+    // Đang mưa → cần analog < RAIN_THRESHOLD_CLEAR để xác nhận hết mưa
+    rainDetected = (rainAnalog < RAIN_THRESHOLD_CLEAR) && !rainDigital ? false : true;
+  } else {
+    // Không mưa → cần analog > RAIN_THRESHOLD để xác nhận có mưa
+    rainDetected = (rainAnalog > RAIN_THRESHOLD) || rainDigital;
+  }
   
   if (rainDetected != isRaining) {
     isRaining = rainDetected;
-    Serial.print("🌧️ Rain status: ");
-    Serial.print(isRaining ? "DETECTED" : "STOPPED");
+    
+    // Track thời điểm hết mưa để delay retract
+    if (!isRaining) {
+      rainStoppedTime = millis();
+      rainJustStopped = true;
+      Serial.println("🌧️ Rain STOPPED - Starting delay before retract");
+    } else {
+      rainJustStopped = false;
+      Serial.println("🌧️ Rain DETECTED - Will extend awning");
+    }
+    
     Serial.print(" (Analog: ");
     Serial.print(rainAnalog);
     Serial.print(", Digital: ");
@@ -286,11 +327,28 @@ void processAutoMode() {
   if (isRaining && !awningExtended) {
     startExtendMotor();
     Serial.println("🌧️ AUTO EXTEND - Rain detected");
+    rainJustStopped = false; // Reset flag
   }
-  // Tự động thu bạt khi hết mưa (có thể thêm delay)
-  else if (!isRaining && awningExtended) {
-    startRetractMotor();
-    Serial.println("☀️ AUTO RETRACT - Rain stopped");
+  // Tự động thu bạt khi hết mưa - với delay
+  else if (!isRaining && awningExtended && rainJustStopped) {
+    // Kiểm tra đã đủ thời gian delay chưa
+    if (millis() - rainStoppedTime >= RAIN_STOP_DELAY) {
+      startRetractMotor();
+      Serial.print("☀️ AUTO RETRACT - Rain stopped ");
+      Serial.print(RAIN_STOP_DELAY / 1000);
+      Serial.println("s ago");
+      rainJustStopped = false; // Reset flag
+    } else {
+      // Hiển thị thời gian còn lại (mỗi 10s)
+      static unsigned long lastDelayLog = 0;
+      if (millis() - lastDelayLog > 10000) {
+        unsigned long remaining = (RAIN_STOP_DELAY - (millis() - rainStoppedTime)) / 1000;
+        Serial.print("⏳ Waiting ");
+        Serial.print(remaining);
+        Serial.println("s before auto-retract");
+        lastDelayLog = millis();
+      }
+    }
   }
 }
 
