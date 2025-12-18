@@ -212,29 +212,36 @@ TỔNG TIÊU THỤ                      1.2-2.2A     6-11W
 NGUỒN KHUYẾN NGHỊ       5V         3-5A         15-25W (Adapter 5V/3-5A)
 ```
 
-## 8. HỘP ĐIỀU KHIỂN VÀ LAYOUT
+## 8. BREADBOARD LAYOUT (MÔ HÌNH DEMO 5V)
 
-### Kích thước hộp điều khiển:
+### Dàn ý breadboard:
 ```
-Hộp chính: 300x200x150mm (IP65)
-├── Arduino Nano on breadboard
-├── L298N Motor Driver  
-├── Buck converter 12V→5V
-├── Terminal blocks
-├── Fuses & CB
-└── Cooling fan (optional)
+BREADBOARD 830 HOLES:
+┌─────────────────────────────────────┐
+│ Rail +5V (từ adapter 5V/3-5A)       │
+│ Rail GND (chung cho tất cả)         │
+├─────────────────────────────────────┤
+│ [Arduino Nano] cắm trực tiếp        │
+├─────────────────────────────────────┤
+│ Khu vực điện trở:                   │
+│   6x R 220Ω cho LED                 │
+│   6x R 10kΩ pull-up                 │
+├─────────────────────────────────────┤
+│ Khu vực buttons + LEDs:             │
+│   4 Buttons: D6,D7,D8,D9            │
+│   6 LEDs: D13, A1-A5                │
+└─────────────────────────────────────┘
 
-Hộp giao diện: 200x150x75mm (IP54)
-├── 4x Button 22mm có LED
-├── 2x LED status 
-├── Emergency stop (optional)
-└── Cable gland
+L298N: Nối riêng qua jumper wires
+Motor 5V: Nối vào OUT1/OUT2 của L298N
 ```
 
 ## 9. BẢNG KIỂM TRA KẾT NỐI
 
 ### Trước khi cấp nguồn:
-- [ ] Kiểm tra phân cực nguồn 12V
+- [ ] Kiểm tra nguồn 5V: 4.8-5.2V
+- [ ] Test motor riêng với 5V (không qua L298N)
+- [ ] Test L298N với đèn LED thôi (chưa nối motor)
 - [ ] Đo điện trở cách ly motor vs Arduino
 - [ ] Kiểm tra pull-up resistors
 - [ ] Test continuity tất cả dây nối
@@ -249,21 +256,22 @@ Hộp giao diện: 200x150x75mm (IP54)
 - [ ] Test motor (không tải) từng hướng
 - [ ] Test motor với tải thật
 
-## 10. LƯU Ý AN TOÀN (DEMO MODEL)
+## 10. LƯU Ý AN TOÀN (DEMO MODEL - MOTOR 5V)
 
 ### Điện:
-⚠️ **USB 5V** an toàn tuyệt đối
-⚠️ **12V adapter** - không nguy hiểm nhưng cần chú ý:
-   - Kiểm tra phân cực (+/-) trước khi kết nối
-   - Không chạm ngắn mạch +12V và GND
-⚠️ **GND chung** cho tất cả thiết bị (USB GND + 12V GND)
-⚠️ **Fuse 3A** để bảo vệ motor (optional nhưng nên có)
+⚠️ **Adapter 5V/3-5A**:
+   - Sử dụng adapter có chứng nhận (UL, CE)
+   - Kiểm tra nhiệt độ adapter sau 30 phút chạy
+   - Không để adapter bị đè nén hoặc tản nhiệt kém
+⚠️ **GND chung** - BẮT BUỘC: Adapter GND = Arduino GND = L298N GND
+⚠️ **Motor 5V** - Không để chạy quá 60s liên tục (code đã có timeout)
+⚠️ **Không ngắn mạch** +5V và GND khi motor đang chạy (dòng cao ~2A)
 
 ### Cơ khí:
-⚠️ **Limit switches** phải đáng tin cậy 100%
-⚠️ **Motor mounting** chắc chắn, không rung
-⚠️ **Cable management** tránh bị kẹt bởi bạt
-⚠️ **Demo model**: Dùng motor nhỏ, tải trọng nhẹ
+⚠️ **Limit switches** phải đáng tin cậy 100% - test nhiều lần
+⚠️ **Motor mounting** chắc chắn, không rung lắc
+⚠️ **Bạt nhẹ** - chỉ dùng vải mỏng 50-200g cho motor 5V
+⚠️ **Demo model**: Motor 5V chỉ đủ cho mô hình nhỏ 30-50cm
 
 ### Software:
 ⚠️ **Timeout protection** cho motor
@@ -271,13 +279,14 @@ Hộp giao diện: 200x150x75mm (IP54)
 ⚠️ **Serial monitoring** để debug
 ⚠️ **Backup code** trước khi chỉnh sửa
 
-## 11. TROUBLESHOOTING
+## 11. TROUBLESHOOTING (MOTOR 5V)
 
 ### Motor không chạy:
-1. Kiểm tra nguồn 12V
-2. Kiểm tra L298N connections
-3. Kiểm tra PWM signal từ Arduino
-4. Test motor trực tiếp với 12V
+1. Kiểm tra nguồn 5V (đo bằng multimeter: 4.8-5.2V)
+2. Kiểm tra L298N VCC = 5V, GND chung với Arduino
+3. Kiểm tra PWM signal từ Arduino D2 (EN)
+4. Test motor trực tiếp: OUT1 nối +5V, OUT2 nối GND
+5. Kiểm tra dòng điện: motor 5V cần 1-2A
 
 ### Button không hoạt động:
 1. Kiểm tra pull-up resistors

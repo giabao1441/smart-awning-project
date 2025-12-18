@@ -104,8 +104,8 @@ Hệ thống điều khiển bạt xếp tự động thông minh với khả n�
 ## 🔧 Troubleshooting
 
 ### Sự cố thường gặp:
-1. **Motor không chạy** → Check nguồn 12V, L298N connections
-2. **Button không hoạt động** → Check pull-up resistors, debounce
+1. **Motor không chạy** → Check nguồn 5V, L298N connections, GND chung
+2. **Button không hoạt động** → Check pull-up resistors 10kΩ, debounce
 3. **Limit switches sai** → Adjust vị trí, check wiring  
 4. **Rain sensor không nhạy** → Clean sensor pad, adjust threshold
 
@@ -134,58 +134,4 @@ Có thể thêm các tính năng:
 
 ---
 
-**⚠️ Disclaimer**: Đây là dự án DIY phức tạp. Nếu không có kinh nghiệm về điện và lập trình, nên nhờ thợ chuyên môn hỗ trợ phần 220V và motor.
-
-
-🎯 Hệ thống hoàn chỉnh cần thiết kế:
-    Mạch điều khiển motor (xuôi/ngược)
-    Bộ điều khiển 3 nút bấm (KÉO/THU/STOP)
-    Nút Smart Mode thứ 4 + LED báo trạng thái
-    Cảm biến mưa + tự động hóa
-    Limit switches an toàn
-    Arduino làm bộ não trung tâm
-🛠️ Danh sách linh kiện HOÀN CHỈNH:
-Phần điều khiển motor:
-    Motor DC 12V/24V x1 (800k-1.5tr) - Motor bạt xếp
-    Driver motor L298N x1 (80k) - Điều khiển xuôi/ngược
-    Nguồn 12V/5A x1 (200k) - Cấp điện cho motor
-    Capacitor 1000µF/25V x2 (40k) - Lọc nguồn motor
-Vi điều khiển & Control:
-    Arduino Nano x1 (150k)
-    Relay 8 kênh 5V x1 (120k) - Điều khiển motor + tín hiệu
-    Module cảm biến mưa x1 (50k)
-    Limit switch x2 (80k) - Đầu cuối hành trình
-Giao diện người dùng:
-    Nút bấm có đèn 22mm x3 (120k) - KÉO/THU/STOP
-    Nút toggle có đèn 22mm x1 (50k) - Smart Mode
-    LED RGB 5mm x1 (20k) - Báo trạng thái hệ thống
-    Box điều khiển IP65 x1 (150k)
-Phụ kiện & An toàn:
-    CB bảo vệ 10A x1 (80k) - Cầu dao an toàn
-    Contactor 25A/12V x1 (150k) - Bảo vệ motor
-    Fuse 5A x3 (30k) - Cầu chì bảo vệ
-    Biến áp 220V→12V/5A x1 (300k) - Nguồn chính
-Dây & Kết nối:
-    Cable 4x1.5mm² x10m (200k) - Dây motor
-    Cable tín hiệu 8 core x5m (100k)
-    Ống luồn dây + phụ kiện (150k)
-💰 TỔNG CHI PHÍ Dự KIẾN: ~3.8-4.5 triệu VNĐ
-
-
-
-
-===================================
-            PROMPT
-===================================
-bạn rất chi tiết. Hhệ thống 3 nút bấm điều khiển hoạt động là chúng ta sẽ thiết kế luôn cho người dùng nhấm luôn. và chúng ta cần thiết kế lắp đặt để mô tơ chạy xuôi chạy ngược luôn. tôi sẽ nhắc lại prompt là nhờ bạn setup lại giúp tôi.
-
-Bây giờ chúng ta chỉ tập trung việc sáng tạo DIY cho các thiét bị tự động thôi.
-Bạt xếp đó đã có hệ thống điện điều khiển 3 nút để có thể điều khiển kéo, xếp bạt, stop tại vị trí mong muốn.
-Bây giờ tôi muốn tự thiết kế hệ thống tự động thông minh cho bạt xếp:
-- Hệ thống 3 nút bấm điều khiển hoạt động là chúng ta sẽ thiết kế luôn cho người dùng nhấm (kéo, xếp bạt, stop tại vị trí bát kỳ).
-- Chúng ta sẽ có công tắt để kích hoạt (turn on/off) chế động thông minh cho bạt xếp (có thể thêm đèn led cảnh báo để biết trạng thái của chế độ) - nút này sẽ là nút hứ 4, nút độc lập với hệ thống 3 nút ở trên. 
-- Khi trời mưa bạt xếp sẽ tự động kéo ra để che. Dĩ nhiên bạt đã được kéo rồi thì không cần kéo nữa.
-- Trong quá thì kéo/thu được ra lệnh từ hệ thống, nếu có sự can thiệp từ con người ra lệnh cho bạt kéo thông qua hệ thống 3 nút bấm thì sẽ ưu tiên lệnh từ con người (có thể chuyển chế độ tự động sang trạng thái off).
-- Thiết kế lắp đặt để mô tơ chạy xuôi chạy ngược luôn (hiện tại người dùng chưa có cái này)
-
-Bạn hãy tư vấn giải pháp cho tôi, và tư vấn các linh kiện cần thiết để mua, cũng như sơ dồ lắp đặt
+**⚠️ Disclaimer**: Đây là dự án DIY mô hình demo. Nếu thực hiện cho bạt thật kích thước lớn, nên nhờ thợ chuyên môn hỗ trợ phần 220V và motor công suất cao.

@@ -35,7 +35,7 @@ SENSORS:
 □ Cable jumper wire (~50k)
 
 ASSEMBLY (mô hình demo):
-□ Breadboard 830 holes (~50k)
+□ Breadboard 830 holes (~50k) 
 □ Khung nhôm/nhựa 30x40cm (~100k)
 □ Dây jumper breadboard male-male/female-female (~30k)
 □ Ốc vít M3 + đai ốc (~20k)
@@ -53,13 +53,15 @@ TOOLS:
 
 ### Bước 2.1: Chuẩn bị hộp điều khiển chính
 ```bash
-1. LAYOUT TRONG HỘP:
+1. LAYOUT BREADBOARD (MÔ HÌNH DEMO 5V):
    ┌─────────────────────────────────────┐
-   │ [CB 10A]  [Nguồn 12V]  [Buck 5V]   │
+   │ [Adapter 5V/3-5A] ─┬─ Arduino Nano │
+   │                    └─ L298N VCC    │
    │                                     │
-   │ [Arduino]  [L298N]  [Relay Module]  │
-   │                                     │
-   │ [Terminal Blocks]  [Fuses]          │
+   │ [Breadboard 830] - Tất cả kết nối   │
+   │   ├─ 6x R 220Ω (LED)               │
+   │   ├─ 6x R 10kΩ (pull-up)           │
+   │   └─ Jumper wires                   │
    └─────────────────────────────────────┘
 
 2. KHOAN LỖ:
@@ -76,24 +78,26 @@ TOOLS:
 
 ### Bước 2.2: Đấu dây trong hộp điều khiển (Demo)
 ```bash
-🔌 THỨ TỰ ĐẤU DÂY:
+🔌 THỨ TỰ ĐẤU DÂY (MOTOR 5V):
 
-1. NGUỒN ARDUINO:
-   USB 5V ─── Arduino Nano USB port
+1. NGUỒN 5V CHUNG:
+   Adapter 5V/3-5A ─┬─ Arduino Nano VIN (hoặc USB)
+                    ├─ L298N VCC
+                    └─ Breadboard Rail (+)
    
-2. NGUỒN MOTOR:
-   12V Adapter (+) ─── L298N VCC
-   12V Adapter (-) ─── L298N GND ─── Arduino GND (GND chung!)
+   Adapter GND ─────┴─ Arduino GND ─── L298N GND ─── Breadboard Rail (-)
+   ⚠️ GND PHẢI CHUNG cho tất cả!
 
-3. SIGNAL WIRES:
-   Arduino ↔ L298N (D2,D3,D4,D5)
+2. SIGNAL WIRES:
+   Arduino ↔ L298N (D2→EN, D3→IN1, D4→IN2)
    Arduino ↔ Sensors (D6-D12, A0)
-   Arduino ↔ LEDs (D13, A1-A5)
+   Arduino ↔ LEDs với 220Ω (D13, A1-A5)
+   Arduino ↔ Buttons với 10kΩ pull-up (D6-D11)
    
-4. LƯU Ý:
-   - GND của USB và 12V PHẢI nối chung
-   - Kiểm tra phân cực 12V trước khi bật
-   - Dùng breadboard để dễ kết nối
+3. LƯU Ý:
+   - Kiểm tra adapter 5V có dòng ≥3A
+   - Đo điện áp trước khi nối: 4.8-5.2V
+   - Dùng breadboard để dễ kết nối và sửa
 ```
 
 ## GIAI ĐOẠN 3: CHẾ TẠO HỘP GIAO DIỆN (0.5 ngày)
@@ -131,18 +135,18 @@ MỖI BUTTON KẾT NỐI:
 
 ### Bước 4.1: Lắp đặt motor 2 chiều
 ```bash
-1. CHỌN MOTOR PHÙ HỢP:
-   ✅ Motor DC 12V có 2 dây (không phân cực +/-)
-   ✅ Công suất: 10-30W (demo) hoặc 30-50W (thực tế)
-   ✅ Có hộp số giảm tốc (tăng mô-men xoắn)
+1. CHỌN MOTOR 5V PHÙ HỢP:
+   ✅ Motor DC 5V có 2 dây (không phân cực +/-)
+   ✅ Công suất: 3-10W (đủ cho mô hình demo nhỏ)
+   ✅ Có hộp số giảm tốc TT 1:48 hoặc 1:90 (BẮT BUỘC)
    ✅ Loại motor khuyến nghị:
-      - DC gear motor 12V 100-200 RPM
-      - Worm gear motor (tự hãm)
-      - Motor với encoder (optional)
+      - DC TT Motor 5V 1:48 (3-6V, 200RPM)
+      - DC Gear Motor 5V 1:90 (4.5-6V, 100RPM)
+      - Worm gear motor 5V (tự hãm, tốt nhất)
 
-2. KẾT NỐI MOTOR VỚI L298N (ĐIỀU KHIỂN 2 CHIỀU):
+2. KẾT NỐI MOTOR 5V VỚI L298N (ĐIỀU KHIỂN 2 CHIỀU):
    
-   Motor DC 12V (2 dây bất kỳ)
+   Motor DC 5V TT 1:48 (2 dây bất kỳ)
    ┌────────┐
    │ Wire 1 │───────────┐
    └────────┘           │
@@ -155,22 +159,25 @@ MỖI BUTTON KẾT NỐI:
    ┌──────────┐         │ IN2 ← D4        │
    │ D2 (PWM) │─────────│ EN  ← D2        │
    │ D3       │─────────│                 │
-   │ D4       │─────────│ VCC ← 12V (+)   │
-   │ GND      │─────────│ GND ← 12V (-)   │
+   │ D4       │─────────│ VCC ← 5V (+)    │
+   │ GND      │─────────│ GND ← GND (-)   │
    └──────────┘         └─────────────────┘
    
-   ⚡ NGUYÊN LÝ H-BRIDGE (L298N):
+   ⚡ NGUYÊN LÝ H-BRIDGE (L298N) - MOTOR 5V:
    
    Chiều 1 (KÉO BẠT):
-   IN1=HIGH, IN2=LOW  → OUT1=+12V, OUT2=GND
+   IN1=HIGH, IN2=LOW  → OUT1=+5V, OUT2=GND
                       → Motor quay xuôi
    
    Chiều 2 (THU BẠT):
-   IN1=LOW, IN2=HIGH  → OUT1=GND, OUT2=+12V
+   IN1=LOW, IN2=HIGH  → OUT1=GND, OUT2=+5V
                       → Motor quay ngược
    
    DỪNG:
    IN1=LOW, IN2=LOW   → Motor dừng
+   
+   ⚠️ LƯU Ý: L298N có voltage drop ~1-1.5V
+      → Motor 5V thực nhận ~3.5-4V (vẫn đủ)
    
 3. LẮP ĐẶT CƠ KHÍ:
 
