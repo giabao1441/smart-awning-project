@@ -159,23 +159,23 @@ Pull-up resistor kéo signal lên 5V khi button/switch KHÔNG nhấn.
 ```
    Hàng  a  b  c  d  e  GAP  f  g  h  i  j
    
-    1   │  │  │  │  │  │   │  │  │  │  │
-        │  │ [Rail +]──┐  │  │  │  │  │  │  ← Nguồn 5V
+    1   │  │  │  │  │  │   │  │  │  │  │  │
+        │  │ [Rail +]──┐   │  │  │  │  │  │  ← Nguồn 5V
     2   │  │  │  │ [10kΩ]  │  │  │  │  │  │
-    3   │  │  │  │  └─┐│  │  │  │  │  │  │
-    4   │  │  │  │  │ ││  │  │  │  │  │  │
-    5   │  │  │ [Button]│  │● D6 Arduino │  ← Hàng 5
-        │  │  │  │  │ └──jumper──┘│  │  │
-    8   │  │  │ [Button]  │  │  │  │  │  │
-        │  │  │  │  │  │  │  │  │  │  │  │
-   10   │  │ [Rail -]──┘  │  │  │  │  │  │  ← GND
+    3   │  │  │  │  └─┐│   │  │  │  │  │  │
+    4   │  │  │  │  │ ││   │  │  │  │  │  │
+    5   │  │  │ [Button]│  │ ● D6 Arduino │  ← Hàng 5
+        │  │  │  │  │ └────jumper──┘│  │  │
+    8   │  │  │ [Button]   │  │  │  │  │  │
+        │  │  │  │  │  │   │  │  │  │  │  │
+   10   │  │ [Rail -]──┘   │  │  │  │  │  │  ← GND
 ```
 
 ### Chi tiết kết nối:
 
 **Button EXTEND (D6) - Hàng 5:**
 1. 10kΩ chân 1 → Rail (+)
-2. 10kΩ chân 2 → Hàng 2, cột d
+2. 10kΩ chân 2 → Hàng 2 cột d
 3. Jumper: Hàng 2 cột d → Hàng 5 cột e (D6)
 4. Button chân 1 → Hàng 5 cột c
 5. Button chân 2 → Hàng 8 cột c
@@ -188,7 +188,7 @@ Pull-up resistor kéo signal lên 5V khi button/switch KHÔNG nhấn.
 - D9: Button SMART + 10kΩ (Hàng 17)
 - D10: Limit Switch 1 + 10kΩ (Hàng 13)
 - D11: Limit Switch 2 + 10kΩ (Hàng 12)
-
+    
 ---
 
 ## BƯỚC 4: LẮP BUTTONS
@@ -268,8 +268,8 @@ LED 5mm:
   |       |    
   |_______|
    │     │
-   │     └─── Chân ngắn (-) Cathode
-   └───────── Chân dài (+) Anode
+   │     └─── Chân ngắn (-) Cathode - TO
+   └───────── Chân dài (+) Anode    - NHO
 ```
 
 **Lặp lại cho 6 LED:**
@@ -287,17 +287,18 @@ LED 5mm:
 ### L298N đặt BÊN NGOÀI breadboard:
 
 ```
-┌─────────────────────┐
-│    L298N MODULE     │
-│                     │
-│ VCC  GND  EN IN1 IN2│
-│  ●    ●   ●  ●   ●  │
-└──┬────┬───┬──┬───┬──┘
-   │    │   │  │   │
-   │    │   │  │   └──→ Arduino D4 (hàng 18, cột e)
-   │    │   │  └──────→ Arduino D3 (hàng 19, cột e)
-   │    │   └─────────→ Arduino D2 (hàng 20, cột e)
-   │    └─────────────→ Arduino GND (Rail -)
+┌─────────────────────────────────┐
+│       L298N MODULE              │
+│  (Chỉ dùng kênh A)              │
+│                                 │
+│ VCC GND ENA IN1 IN2   ENB IN3 IN4│
+│  ●   ●   ●   ●   ●    (không dùng)│
+└──┬───┬───┬───┬───┬──────────────┘
+   │   │   │   │   │
+   │   │   │   │   └──→ Arduino D4 (hàng 18, cột e)
+   │   │   │   └──────→ Arduino D3 (hàng 19, cột e)
+   │   │   └──────────→ Arduino D2 (hàng 20, cột e)
+   │   └──────────────→ Arduino GND (Rail -)
    └──────────────────→ Adapter 5V (+) hoặc Rail (+)
    
 ┌──────────────┐
@@ -307,20 +308,23 @@ LED 5mm:
 
 ### Kết nối jumper:
 
-**Từ Arduino → L298N:**
-1. **D2 (EN)**: Jumper từ D2 (hàng 20, cột e) → L298N EN
-2. **D3 (IN1)**: Jumper từ D3 (hàng 19, cột e) → L298N IN1
-3. **D4 (IN2)**: Jumper từ D4 (hàng 18, cột e) → L298N IN2
+**Từ Arduino → L298N (Kênh A):**
+1. **D2 → ENA**: Jumper từ D2 (hàng 20, cột e) → L298N ENA (Enable kênh A)
+2. **D3 → IN1**: Jumper từ D3 (hàng 19, cột e) → L298N IN1 (Direction 1)
+3. **D4 → IN2**: Jumper từ D4 (hàng 18, cột e) → L298N IN2 (Direction 2)
 4. **GND**: Jumper từ Rail (-) → L298N GND
 
 **Từ Adapter → L298N:**
 5. **VCC**: Jumper từ Rail (+) → L298N VCC (5V)
 
-**Motor → L298N:**
-6. **Motor wire 1** → L298N OUT1
-7. **Motor wire 2** → L298N OUT2
+**Motor → L298N (Kênh A):**
+6. **Motor wire 1** → L298N OUT1 (Kênh A output 1)
+7. **Motor wire 2** → L298N OUT2 (Kênh A output 2)
 
-⚠️ **LƯU Ý:** Motor 2 dây không cần phân biệt cực (+/-). Nếu quay ngược thì đổi dây.
+⚠️ **LƯU Ý QUAN TRỌNG:** 
+- **Kênh B không dùng**: ENB, IN3, IN4, OUT3, OUT4 để trống
+- **Jumper ENA**: Nếu module có jumper nhỏ trên ENA → **PHẢI THÁO RA** để Arduino điều khiển PWM tốc độ
+- Motor 2 dây không phân biệt cực. Nếu quay ngược → đổi 2 dây OUT1 và OUT2
 
 ---
 
@@ -337,7 +341,7 @@ LED 5mm:
 │  ●   ●   ●  ●    │
 └──┬───┬───┬──┬───┘
    │   │   │  │
-   │   │   │  └─────→ Arduino A0 (hàng 25, cột e)
+   │   │   │  └─────→ Arduino A6 (chân analog A6)
    │   │   └────────→ Arduino D12 (hàng 11, cột e)
    │   └────────────→ Rail (-)
    └────────────────→ Rail (+) 5V
@@ -348,7 +352,7 @@ LED 5mm:
 1. **VCC**: Rain sensor VCC → Rail (+)
 2. **GND**: Rain sensor GND → Rail (-)
 3. **DO**: Rain sensor DO → Arduino D12 (hàng 11, cột e)
-4. **AO**: Rain sensor AO → Arduino A0 (hàng 25, cột e)
+4. **AO**: Rain sensor AO → Arduino A6 (chân analog A6)
 
 ⚠️ **LƯU Ý:** Sensor pad (tấm cảm biến) nối với module qua cable 4 dây.
 
@@ -394,22 +398,25 @@ Khi NHẤN: D10 = LOW (nối GND)
 ┌────────────────────────────────────────────────────────────┐
 │  [-] ━━━[Adapter GND]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  [-]  │
 │  [+] ━━━[Adapter +5V]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  [+]  │
-│                                                            │
-│  Hàng 1-7:                                                 │
+│                                                           │
+│  Hàng 1-7:                                                │
 │  ├─ Button circuits (4 nút)                               │
 │  └─ Pull-up resistors 10kΩ (6 cái)                        │
-│                                                            │
+│                                                           │
 │  Hàng 8-27:   ┌─────────────────────────┐                 │
 │               │   ARDUINO NANO (USB↑)   │                 │
 │               │  Vắt qua GAP (e-f)      │                 │
 │               └─────────────────────────┘                 │
-│  ├─ D2-D13: Motor + Buttons + LEDs                        │
-│  ├─ A0: Rain sensor analog                                │
-│  └─ A1-A5: LEDs output                                    │
-│                                                            │
-│  Hàng 28-30:                                               │
+│  ├─ D2-D4: L298N Motor control (EN, IN1, IN2)             │
+│  ├─ D6-D9: Buttons (EXTEND, RETRACT, STOP, SMART)         │
+│  ├─ D10-D11: Limit switches                               │
+│  ├─ D12: Rain sensor digital                              │
+│  ├─ A0-A5: LED outputs (EXTEND, RETRACT, STOP, SMART, RED, GREEN) │
+│  └─ A6: Rain sensor analog                                │
+│                                                           │
+│  Hàng 28-30:                                              │
 │  └─ LED circuits + resistors 220Ω (6 cái)                 │
-│                                                            │
+│                                                           │
 │  [-] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  [-]  │
 │  [+] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  [+]  │
 └────────────────────────────────────────────────────────────┘

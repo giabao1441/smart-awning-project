@@ -9,27 +9,26 @@
 #include <Arduino.h>
 
 // =================== CHÂN KẾT NỐI MOTOR ===================
-#define MOTOR_ENABLE 2        // Enable motor (PWM)
-#define MOTOR_IN1 3           // Motor direction 1
-#define MOTOR_IN2 4           // Motor direction 2
-#define MOTOR_POWER_RELAY 5   // Relay nguồn motor chính
+#define MOTOR_ENABLE 6        // Enable motor (PWM)
+#define MOTOR_IN1 7           // Motor direction 1
+#define MOTOR_IN2 8           // Motor direction 2
 
 // =================== CHÂN INPUT - NÚT BẤM ===================
-#define BTN_EXTEND 6          // Nút KÉO bạt
-#define BTN_RETRACT 7         // Nút THU bạt
-#define BTN_STOP 8            // Nút STOP
-#define BTN_SMART_MODE 9      // Nút chế độ thông minh
+#define BTN_EXTEND 12         // Nút KÉO bạt
+#define BTN_RETRACT 10        // Nút THU bạt
+#define BTN_STOP 9           // Nút STOP
+#define BTN_SMART_MODE 2      // Nút chế độ thông minh
 
 // =================== CHÂN SENSOR ===================
-#define LIMIT_EXTENDED 10     // Limit switch - bạt kéo hết
-#define LIMIT_RETRACTED 11    // Limit switch - bạt thu hết
-#define RAIN_SENSOR_DIGITAL 12 // Cảm biến mưa (digital)
-#define RAIN_SENSOR_ANALOG A0  // Cảm biến mưa (analog)
+#define LIMIT_EXTENDED 4     // Limit switch - bạt kéo hết
+#define LIMIT_RETRACTED 5    // Limit switch - bạt thu hết
+#define RAIN_SENSOR_DIGITAL A7 // Cảm biến mưa (digital)
+#define RAIN_SENSOR_ANALOG A6  // Cảm biến mưa (analog)
 
 // =================== CHÂN OUTPUT - LED ===================
-#define LED_EXTEND 13         // LED nút KÉO
+#define LED_EXTEND A2         // LED nút KÉO
 #define LED_RETRACT A1        // LED nút THU  
-#define LED_STOP A2           // LED nút STOP
+#define LED_STOP A0           // LED nút STOP
 #define LED_SMART_MODE A3     // LED nút SMART MODE
 #define LED_STATUS_RED A4     // LED trạng thái - đỏ
 #define LED_STATUS_GREEN A5   // LED trạng thái - xanh lá
@@ -37,14 +36,14 @@
 // =================== BIẾN TRẠNG THÁI ===================
 bool smartModeEnabled = false;
 bool awningExtended = false;
-bool awningRetracted = true;
+bool awningRetracted = false;
 bool isRaining = false;
 bool motorRunning = false;
 bool systemEnabled = true;
 
 // =================== TRẠNG THÁI NÚT BẤM ===================
 bool btnExtendPressed = false;
-bool btnRetractPressed = false;
+bool btnRetractPresse = false;
 bool btnStopPressed = false;
 bool btnSmartPressed = false;
 
@@ -60,15 +59,15 @@ bool rainJustStopped = false;                    // Flag để track trạng th�
 
 const unsigned long DEBOUNCE_TIME = 100;          // Debounce cho nút bấm
 const unsigned long LOOP_INTERVAL = 300;          // Chu kỳ loop chính (300ms)
-const unsigned long RAIN_CHECK_INTERVAL = 2000;  // Check mưa mỗi 2s
+const unsigned long RAIN_CHECK_INTERVAL = 1000;  // Check mưa mỗi 1s
 const unsigned long STATUS_UPDATE_INTERVAL = 500; // Cập nhật LED mỗi 0.5s
-const unsigned long MOTOR_MAX_RUNTIME = 60000;    // 60 giây tối đa
+const unsigned long MOTOR_MAX_RUNTIME = 10000;    // 10 giây tối đa
 
 // =================== NGƯỠNG CẢM BIẾN ===================
 const int RAIN_THRESHOLD = 400;        // Ngưỡng phát hiện mưa
 const int RAIN_THRESHOLD_CLEAR = 500;  // Ngưỡng hết mưa (hysteresis)
 const int MOTOR_SPEED = 255;           // Tốc độ motor (0-255)
-const unsigned long RAIN_STOP_DELAY = 120000; // Delay 2 phút sau khi hết mưa
+const unsigned long RAIN_STOP_DELAY = 10000; // Delay 10 giây sau khi hết mưa (đổi thành 120000 nếu muốn 2 phút)
 
 // =================== ENUM TRẠNG THÁI ===================
 enum MotorState {
@@ -102,7 +101,6 @@ void setup() {
   pinMode(MOTOR_ENABLE, OUTPUT);
   pinMode(MOTOR_IN1, OUTPUT);
   pinMode(MOTOR_IN2, OUTPUT);
-  pinMode(MOTOR_POWER_RELAY, OUTPUT);
   
   // LED indicators  
   pinMode(LED_EXTEND, OUTPUT);
@@ -136,24 +134,24 @@ void setup() {
 }
 
 void loop() {
+  // === FAST CHECKS - Chạy mỗi vòng loop ===
+  // Các function này có debounce/interval riêng để tránh spam:
+  // - checkButtonInputs: debounce 100ms
+  // - checkLimitSwitches: chỉ update khi thay đổi
+  // - checkMotorTimeout: chỉ check khi motor đang chạy
+  checkButtonInputs();      // Debounce 100ms - responsive cho user
+  checkLimitSwitches();     // Safety - dừng motor ngay khi chạm limit
+  checkMotorTimeout();      // Safety - timeout protection
+
   unsigned long currentTime = millis();
   
-  // Chỉ xử lý sau mỗi LOOP_INTERVAL (300ms)
+  // === CHU KỲ CHÍNH - Chạy mỗi 300ms ===
   if (currentTime - lastLoopTime < LOOP_INTERVAL) {
-    // === FAST CHECKS (Critical timing) ===
-    // Những function này cần check thường xuyên vì liên quan đến:
-    // - User experience (buttons)
-    // - Safety (limit switches, timeout)
-    checkButtonInputs();      // Debounce 100ms - responsive cho user
-    checkLimitSwitches();     // Safety - dừng motor ngay khi chạm limit
-    checkMotorTimeout();      // Safety - timeout protection
-    delay(10);                // Nghỉ 10ms để không spam CPU
-    return;
+    return;  // Chưa đủ 300ms, bỏ qua phần còn lại
   }
   
   lastLoopTime = currentTime;
   
-  // === CHU KỲ CHÍNH (300ms) ===
   // Kiểm tra cảm biến
   checkRainSensor();          // Check mỗi 2s (có interval riêng)
   
@@ -171,14 +169,41 @@ void checkButtonInputs() {
   if (millis() - lastButtonCheck < DEBOUNCE_TIME) return; // Debounce 100ms
   
   // Đọc trạng thái nút bấm (LOW = pressed)
-  bool currentExtend = !digitalRead(BTN_EXTEND);
-  bool currentRetract = !digitalRead(BTN_RETRACT);
-  bool currentStop = !digitalRead(BTN_STOP);
-  bool currentSmart = !digitalRead(BTN_SMART_MODE);
+  int rawExtend = digitalRead(BTN_EXTEND);
+  int rawRetract = digitalRead(BTN_RETRACT);
+  int rawStop = digitalRead(BTN_STOP);
+  int rawSmart = digitalRead(BTN_SMART_MODE);
   
-  // Xử lý nút SMART MODE (toggle)
-  static bool lastSmartState = false;
-  if (currentSmart && !lastSmartState) {
+  bool currentExtend = !rawExtend;
+  bool currentRetract = !rawRetract;
+  bool currentStop = !rawStop;
+  bool currentSmart = !rawSmart;
+  
+  // DEBUG: In giá trị RAW để phát hiện lỗi hardware
+  static unsigned long lastDebugPrint = 0;
+  if (millis() - lastDebugPrint > 2000) {
+    Serial.print("🔍 RAW PINS: Extend=");
+    Serial.print(rawExtend);
+    Serial.print(" Retract=");
+    Serial.print(rawRetract);
+    Serial.print(" Stop=");
+    Serial.print(rawStop);
+    Serial.print(" Smart=");
+    Serial.println(rawSmart);
+    lastDebugPrint = millis();
+  }
+
+  // Nếu KHÔNG có thay đổi gì → return sớm
+  if ((currentExtend == btnExtendPressed)
+    && (currentRetract == btnRetractPressed)
+    && (currentStop == btnStopPressed)
+    && (currentSmart == btnSmartPressed)) {
+      lastButtonCheck = millis();
+      return;
+  }
+  
+  // Edge detection: chỉ toggle khi VỪA NHẤN (chưa nhấn trước đó)
+  if (currentSmart && !btnSmartPressed) {
     smartModeEnabled = !smartModeEnabled;
     currentSystemMode = smartModeEnabled ? MODE_AUTO : MODE_MANUAL;
     
@@ -189,12 +214,19 @@ void checkButtonInputs() {
       stopMotor(); // Dừng motor khi tắt auto mode
     }
   }
-  lastSmartState = currentSmart;
   
   // Cập nhật trạng thái nút bấm
   btnExtendPressed = currentExtend;
   btnRetractPressed = currentRetract; 
   btnStopPressed = currentStop;
+  btnSmartPressed = currentSmart;
+  
+  Serial.println("================= BUTTON STATUS ================");
+  Serial.print("🧠 Smart Status: "); Serial.println(btnSmartPressed ? "/\\" : "___");
+  Serial.print("🔓 Extend Status: "); Serial.println(btnExtendPressed ? "/\\" : "___");
+  Serial.print("🔒 Retract Status: "); Serial.println(btnRetractPressed ? "/\\" : "___");
+  Serial.print("🚫 Stop Status: "); Serial.println(btnStopPressed ? "/\\" : "___");
+  Serial.println("================= BUTTON STATUS ================");
   
   lastButtonCheck = millis();
 }
@@ -208,11 +240,13 @@ void checkRainSensor() {
   // Hysteresis: khác ngưỡng khi bắt đầu mưa vs hết mưa
   bool rainDetected;
   if (isRaining) {
-    // Đang mưa → cần analog < RAIN_THRESHOLD_CLEAR để xác nhận hết mưa
-    rainDetected = (rainAnalog < RAIN_THRESHOLD_CLEAR) && !rainDigital ? false : true;
+    // Đang mưa → CHỈ CẦN 1 sensor còn phát hiện ướt thì vẫn coi là mưa
+    // Ngưỡng cao hơn (500) để tránh dao động
+    rainDetected = (rainAnalog < RAIN_THRESHOLD_CLEAR) || rainDigital;
   } else {
-    // Không mưa → cần analog > RAIN_THRESHOLD để xác nhận có mưa
-    rainDetected = (rainAnalog > RAIN_THRESHOLD) || rainDigital;
+    // Không mưa → CẦN CẢ 2 sensors CÙNG phát hiện mới xác nhận có mưa
+    // Tránh false alarm khi chỉ 1 sensor nhiễu hoặc lỗi
+    rainDetected = (rainAnalog < RAIN_THRESHOLD) && rainDigital;
   }
   
   if (rainDetected != isRaining) {
@@ -241,6 +275,7 @@ void checkRainSensor() {
 void checkLimitSwitches() {
   bool extended = !digitalRead(LIMIT_EXTENDED);
   bool retracted = !digitalRead(LIMIT_RETRACTED);
+
   
   if (extended != awningExtended || retracted != awningRetracted) {
     awningExtended = extended;
@@ -286,7 +321,7 @@ void processButtonCommands() {
   }
   
   // Lệnh EXTEND
-  if (btnExtendPressed && !motorRunning) {
+  if (btnExtendPressed) {
     if (!awningExtended) {
       startExtendMotor();
       Serial.println("📤 MANUAL EXTEND - User command");
@@ -303,7 +338,7 @@ void processButtonCommands() {
   }
   
   // Lệnh RETRACT
-  if (btnRetractPressed && !motorRunning) {
+  if (btnRetractPressed) {
     if (!awningRetracted) {
       startRetractMotor();
       Serial.println("� MANUAL RETRACT - User command");
@@ -324,13 +359,13 @@ void processAutoMode() {
   if (!smartModeEnabled || motorRunning) return;
   
   // Tự động kéo bạt khi mưa
-  if (isRaining && !awningExtended) {
+  if (isRaining) {
     startExtendMotor();
     Serial.println("🌧️ AUTO EXTEND - Rain detected");
     rainJustStopped = false; // Reset flag
   }
   // Tự động thu bạt khi hết mưa - với delay
-  else if (!isRaining && awningExtended && rainJustStopped) {
+  else if (!isRaining && rainJustStopped) {
     // Kiểm tra đã đủ thời gian delay chưa
     if (millis() - rainStoppedTime >= RAIN_STOP_DELAY) {
       startRetractMotor();
@@ -356,8 +391,14 @@ void processAutoMode() {
 void startExtendMotor() {
   if (awningExtended) return;
   
-  digitalWrite(MOTOR_POWER_RELAY, HIGH); // Bật nguồn motor
-  delay(100);
+  // Kiểm tra limit switch trước khi start motor (LOW = đã chạm với INPUT_PULLUP)
+  bool limitReached = (digitalRead(LIMIT_EXTENDED) == LOW);
+  if (limitReached) {
+    Serial.println("⚠️ Already at extended limit - cannot extend further");
+    awningExtended = true;
+    stopMotor();
+    return;
+  }
   
   digitalWrite(MOTOR_IN1, HIGH);
   digitalWrite(MOTOR_IN2, LOW);
@@ -373,8 +414,13 @@ void startExtendMotor() {
 void startRetractMotor() {
   if (awningRetracted) return;
   
-  digitalWrite(MOTOR_POWER_RELAY, HIGH); // Bật nguồn motor
-  delay(100);
+  // Kiểm tra limit switch trước khi start motor
+  if (!digitalRead(LIMIT_RETRACTED)) {
+    Serial.println("⚠️ Already at retracted limit - cannot retract further");
+    awningRetracted = true;
+    stopMotor();
+    return;
+  }
   
   digitalWrite(MOTOR_IN1, LOW);
   digitalWrite(MOTOR_IN2, HIGH);
@@ -391,10 +437,7 @@ void stopMotor() {
   digitalWrite(MOTOR_IN1, LOW);
   digitalWrite(MOTOR_IN2, LOW);
   analogWrite(MOTOR_ENABLE, 0);
-  
-  delay(500); // Đợi motor dừng hoàn toàn
-  digitalWrite(MOTOR_POWER_RELAY, LOW); // Tắt nguồn motor
-  
+    
   currentMotorState = MOTOR_STOPPED;
   motorRunning = false;
   
@@ -408,14 +451,6 @@ void updateMotorControl() {
 
 // =================== CẬP NHẬT LED ===================
 void updateLEDStatus() {
-  if (millis() - lastStatusUpdate < STATUS_UPDATE_INTERVAL) return;
-  
-  // LED nút bấm
-  digitalWrite(LED_EXTEND, btnExtendPressed ? HIGH : LOW);
-  digitalWrite(LED_RETRACT, btnRetractPressed ? HIGH : LOW);
-  digitalWrite(LED_STOP, btnStopPressed ? HIGH : LOW);
-  digitalWrite(LED_SMART_MODE, smartModeEnabled ? HIGH : LOW);
-  
   // LED trạng thái hệ thống
   if (motorRunning) {
     // Nhấp nháy khi motor đang chạy
@@ -431,6 +466,15 @@ void updateLEDStatus() {
     digitalWrite(LED_STATUS_RED, HIGH);
     digitalWrite(LED_STATUS_GREEN, LOW);
   }
+
+  if (millis() - lastStatusUpdate < STATUS_UPDATE_INTERVAL) return;
+  
+  // LED trạng thái motor và chế độ
+  digitalWrite(LED_EXTEND, (currentMotorState == MOTOR_EXTENDING) ? HIGH : LOW);
+  digitalWrite(LED_RETRACT, (currentMotorState == MOTOR_RETRACTING) ? HIGH : LOW);
+  digitalWrite(LED_STOP, btnStopPressed ? HIGH : LOW);
+  digitalWrite(LED_SMART_MODE, smartModeEnabled ? HIGH : LOW);
+  
   
   lastStatusUpdate = millis();
 }
