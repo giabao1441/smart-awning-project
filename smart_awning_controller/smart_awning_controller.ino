@@ -22,7 +22,6 @@
 // =================== CHÂN SENSOR ===================
 #define LIMIT_EXTENDED 4     // Limit switch - bạt kéo hết
 #define LIMIT_RETRACTED 5    // Limit switch - bạt thu hết
-#define RAIN_SENSOR_DIGITAL A7 // Cảm biến mưa (digital)
 #define RAIN_SENSOR_ANALOG A6  // Cảm biến mưa (analog)
 
 // =================== CHÂN OUTPUT - LED ===================
@@ -34,7 +33,7 @@
 #define LED_STATUS_GREEN A5   // LED trạng thái - xanh lá
 
 // =================== BIẾN TRẠNG THÁI ===================
-bool smartModeEnabled = false;
+bool smartModeEnabled = true;  // Bật chế độ smart mặc định khi khởi động
 bool awningExtended = false;
 bool awningRetracted = false;
 bool isRaining = false;
@@ -43,7 +42,7 @@ bool systemEnabled = true;
 
 // =================== TRẠNG THÁI NÚT BẤM ===================
 bool btnExtendPressed = false;
-bool btnRetractPresse = false;
+bool btnRetractPressed = false;
 bool btnStopPressed = false;
 bool btnSmartPressed = false;
 
@@ -59,15 +58,15 @@ bool rainJustStopped = false;                    // Flag để track trạng th�
 
 const unsigned long DEBOUNCE_TIME = 100;          // Debounce cho nút bấm
 const unsigned long LOOP_INTERVAL = 300;          // Chu kỳ loop chính (300ms)
-const unsigned long RAIN_CHECK_INTERVAL = 1000;  // Check mưa mỗi 1s
+const unsigned long RAIN_CHECK_INTERVAL = 2000;  // Check mưa mỗi 2s
 const unsigned long STATUS_UPDATE_INTERVAL = 500; // Cập nhật LED mỗi 0.5s
-const unsigned long MOTOR_MAX_RUNTIME = 10000;    // 10 giây tối đa
+const unsigned long MOTOR_MAX_RUNTIME = 6000;    // 6 giây tối đa
 
 // =================== NGƯỠNG CẢM BIẾN ===================
 const int RAIN_THRESHOLD = 400;        // Ngưỡng phát hiện mưa
 const int RAIN_THRESHOLD_CLEAR = 500;  // Ngưỡng hết mưa (hysteresis)
 const int MOTOR_SPEED = 255;           // Tốc độ motor (0-255)
-const unsigned long RAIN_STOP_DELAY = 10000; // Delay 10 giây sau khi hết mưa (đổi thành 120000 nếu muốn 2 phút)
+const unsigned long RAIN_STOP_DELAY = 3000; // Delay 3 giây sau khi hết mưa
 
 // =================== ENUM TRẠNG THÁI ===================
 enum MotorState {
@@ -82,7 +81,7 @@ enum SystemMode {
 };
 
 MotorState currentMotorState = MOTOR_STOPPED;
-SystemMode currentSystemMode = MODE_MANUAL;
+SystemMode currentSystemMode = MODE_AUTO;  // Bắt đầu ở chế độ AUTO
 
 void setup() {
   Serial.begin(9600);
@@ -94,7 +93,6 @@ void setup() {
   pinMode(BTN_SMART_MODE, INPUT_PULLUP);
   pinMode(LIMIT_EXTENDED, INPUT_PULLUP);
   pinMode(LIMIT_RETRACTED, INPUT_PULLUP);
-  pinMode(RAIN_SENSOR_DIGITAL, INPUT_PULLUP);
   
   // =================== CẤU HÌNH OUTPUT PINS ===================
   // Motor control
@@ -181,17 +179,17 @@ void checkButtonInputs() {
   
   // DEBUG: In giá trị RAW để phát hiện lỗi hardware
   static unsigned long lastDebugPrint = 0;
-  if (millis() - lastDebugPrint > 2000) {
-    Serial.print("🔍 RAW PINS: Extend=");
-    Serial.print(rawExtend);
-    Serial.print(" Retract=");
-    Serial.print(rawRetract);
-    Serial.print(" Stop=");
-    Serial.print(rawStop);
-    Serial.print(" Smart=");
-    Serial.println(rawSmart);
-    lastDebugPrint = millis();
-  }
+  // if (millis() - lastDebugPrint > 2000) {
+  //   Serial.print("🔍 RAW PINS: Extend=");
+  //   Serial.print(rawExtend);
+  //   Serial.print(" Retract=");
+  //   Serial.print(rawRetract);
+  //   Serial.print(" Stop=");
+  //   Serial.print(rawStop);
+  //   Serial.print(" Smart=");
+  //   Serial.println(rawSmart);
+  //   lastDebugPrint = millis();
+  // }
 
   // Nếu KHÔNG có thay đổi gì → return sớm
   if ((currentExtend == btnExtendPressed)
@@ -235,20 +233,22 @@ void checkRainSensor() {
   if (millis() - lastRainCheck < RAIN_CHECK_INTERVAL) return;
   
   int rainAnalog = analogRead(RAIN_SENSOR_ANALOG);
-  bool rainDigital = !digitalRead(RAIN_SENSOR_DIGITAL);
   
   // Hysteresis: khác ngưỡng khi bắt đầu mưa vs hết mưa
   bool rainDetected;
   if (isRaining) {
-    // Đang mưa → CHỈ CẦN 1 sensor còn phát hiện ướt thì vẫn coi là mưa
-    // Ngưỡng cao hơn (500) để tránh dao động
-    rainDetected = (rainAnalog < RAIN_THRESHOLD_CLEAR) || rainDigital;
+    // Đang mưa → Ngưỡng cao hơn (500) để tránh dao động
+    rainDetected = (rainAnalog < RAIN_THRESHOLD_CLEAR);
   } else {
-    // Không mưa → CẦN CẢ 2 sensors CÙNG phát hiện mới xác nhận có mưa
-    // Tránh false alarm khi chỉ 1 sensor nhiễu hoặc lỗi
-    rainDetected = (rainAnalog < RAIN_THRESHOLD) && rainDigital;
+    // Không mưa → Ngưỡng thấp hơn (400) để phát hiện mưa
+    rainDetected = (rainAnalog < RAIN_THRESHOLD);
   }
   
+  Serial.print(rainDetected ? "WET rainDetected" : "DRY rainDetected");
+  Serial.print(" (Analog: ");
+  Serial.print(rainAnalog);
+  Serial.println(")");
+
   if (rainDetected != isRaining) {
     isRaining = rainDetected;
     
@@ -262,11 +262,11 @@ void checkRainSensor() {
       Serial.println("🌧️ Rain DETECTED - Will extend awning");
     }
     
-    Serial.print(" (Analog: ");
-    Serial.print(rainAnalog);
-    Serial.print(", Digital: ");
-    Serial.print(rainDigital ? "WET" : "DRY");
-    Serial.println(")");
+    // Serial.print(" (Analog: ");
+    // Serial.print(rainAnalog);
+    // Serial.print(", Digital: ");
+    // Serial.print(rainDigital ? "WET" : "DRY");
+    // Serial.println(")");
   }
   
   lastRainCheck = millis();
@@ -531,19 +531,19 @@ void printSystemStatus() {
     case MOTOR_EXTENDING: Serial.println("EXTENDING"); break;
     case MOTOR_RETRACTING: Serial.println("RETRACTING"); break;
   }
-  Serial.print("Position - Extended: ");
-  Serial.print(awningExtended ? "YES" : "NO");
-  Serial.print(", Retracted: ");
-  Serial.println(awningRetracted ? "YES" : "NO");
-  Serial.print("Rain Detected: ");
-  Serial.println(isRaining ? "YES" : "NO");
-  Serial.print("Buttons - Extend: ");
-  Serial.print(btnExtendPressed ? "ON" : "OFF");
-  Serial.print(", Retract: ");
-  Serial.print(btnRetractPressed ? "ON" : "OFF");
-  Serial.print(", Stop: ");
-  Serial.print(btnStopPressed ? "ON" : "OFF");
-  Serial.print(", Smart: ");
-  Serial.println(smartModeEnabled ? "ON" : "OFF");
-  Serial.println("====================\n");
+  // Serial.print("Position - Extended: ");
+  // Serial.print(awningExtended ? "YES" : "NO");
+  // Serial.print(", Retracted: ");
+  // Serial.println(awningRetracted ? "YES" : "NO");
+  // Serial.print("Rain Detected: ");
+  // Serial.println(isRaining ? "YES" : "NO");
+  // Serial.print("Buttons - Extend: ");
+  // Serial.print(btnExtendPressed ? "ON" : "OFF");
+  // Serial.print(", Retract: ");
+  // Serial.print(btnRetractPressed ? "ON" : "OFF");
+  // Serial.print(", Stop: ");
+  // Serial.print(btnStopPressed ? "ON" : "OFF");
+  // Serial.print(", Smart: ");
+  // Serial.println(smartModeEnabled ? "ON" : "OFF");
+  // Serial.println("====================\n");
 }
